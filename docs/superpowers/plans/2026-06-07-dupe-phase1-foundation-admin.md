@@ -162,8 +162,10 @@ NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-ADMIN_EMAILS=iamjinwang@gmail.com
+ADMIN_EMAILS=admin@example.com
 ```
+
+(In your own `.env.local`, set `ADMIN_EMAILS` to your real email — comma-separated for multiple admins. `.env.example` stays as a public placeholder.)
 
 - [ ] **Step 6: Initialize git and commit**
 
