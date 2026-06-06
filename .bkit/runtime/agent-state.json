@@ -7,17 +7,47 @@
   "orchestrationPattern": "leader",
   "ctoAgent": "opus",
   "startedAt": "2026-06-06T15:49:47.904Z",
-  "lastUpdated": "2026-06-06T15:49:47.905Z",
+  "lastUpdated": "2026-06-06T16:21:34.692Z",
   "teammates": [
     {
       "name": "a280d66b68b4af561",
       "role": "general-purpose",
       "model": "sonnet",
-      "status": "spawning",
+      "status": "completed",
       "currentTask": null,
       "taskId": null,
       "startedAt": "2026-06-06T15:49:47.905Z",
-      "lastActivityAt": "2026-06-06T15:49:47.905Z"
+      "lastActivityAt": "2026-06-06T15:57:21.593Z"
+    },
+    {
+      "name": "a65c578cea0ea9114",
+      "role": "general-purpose",
+      "model": "sonnet",
+      "status": "completed",
+      "currentTask": null,
+      "taskId": null,
+      "startedAt": "2026-06-06T15:58:09.546Z",
+      "lastActivityAt": "2026-06-06T15:58:38.172Z"
+    },
+    {
+      "name": "aa0b16f7c118f45d3",
+      "role": "general-purpose",
+      "model": "sonnet",
+      "status": "completed",
+      "currentTask": null,
+      "taskId": null,
+      "startedAt": "2026-06-06T15:59:19.882Z",
+      "lastActivityAt": "2026-06-06T15:59:43.279Z"
+    },
+    {
+      "name": "a6a1dedeb3b2807da",
+      "role": "general-purpose",
+      "model": "sonnet",
+      "status": "spawning",
+      "currentTask": null,
+      "taskId": null,
+      "startedAt": "2026-06-06T16:21:34.690Z",
+      "lastActivityAt": "2026-06-06T16:21:34.690Z"
     }
   ],
   "progress": {
