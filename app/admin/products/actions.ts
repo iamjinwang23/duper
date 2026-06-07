@@ -3,11 +3,9 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { adminClient } from "@/lib/supabase/admin";
 import { scrapeProductUrl } from "@/lib/scraper";
 import { uploadImageFromUrl } from "@/lib/scraper/image";
-import { embedSafe } from "@/lib/embeddings";
-import { slugify } from "@/lib/slug";
+import { insertProductRow } from "@/lib/products/create";
 
 const Schema = z.object({
   source_url: z.string().url().optional().or(z.literal("")),
@@ -34,9 +32,10 @@ export async function registerProduct(
     return { error: parsed.error.issues.map((e) => e.message).join(", ") };
   }
   const v = parsed.data;
-  const supabase = adminClient();
 
-  // Mirror image to our Storage if provided
+  // Mirror image to our Storage if provided. The form is admin-editable, so the
+  // image (and name/price/description below) come from the form fields rather
+  // than a re-scrape — this preserves manual entry and admin edits.
   let imageUrl: string | null = null;
   if (v.image_original_url) {
     try {
@@ -46,60 +45,26 @@ export async function registerProduct(
     }
   }
 
-  // Generate text embedding (provider-agnostic, non-fatal). If embeddings are
-  // disabled ("none") or the provider is unavailable (e.g. no quota), the
-  // product is still saved with a null embedding to be backfilled later.
-  const embedInput = [v.name, v.description ?? ""].filter(Boolean).join(" — ");
-  const { vector: embedding, error: embedError } = await embedSafe(embedInput);
-  if (embedError) {
-    console.warn(`[registerProduct] embedding skipped: ${embedError}`);
+  // Delegate the embed -> unique slug -> insert -> KO translation core to the
+  // shared helper so this stays behavior-identical to the batch scrape path.
+  const res = await insertProductRow({
+    brandId: v.brand_id,
+    tier: v.tier,
+    category: v.category,
+    name: v.name,
+    description: v.description,
+    priceAmount: v.price_amount,
+    priceCurrency: v.price_currency,
+    sourceUrl: v.source_url || null,
+    imageUrl,
+    imageOriginalUrl: v.image_original_url || null,
+  });
+
+  if (!res.ok) {
+    return { error: `Insert failed: ${res.error}` };
   }
 
-  // Generate slug; ensure uniqueness with a numeric suffix
-  const baseSlug = slugify(v.name);
-  let slug = baseSlug;
-  for (let i = 2; i < 99; i++) {
-    const { data } = await supabase.from("products").select("id").eq("slug", slug).maybeSingle();
-    if (!data) break;
-    slug = `${baseSlug}-${i}`;
-  }
-
-  const { data: inserted, error: insertErr } = await supabase
-    .from("products")
-    .insert({
-      brand_id: v.brand_id,
-      tier: v.tier,
-      category: v.category,
-      slug,
-      name: v.name,
-      price_amount: v.price_amount ?? null,
-      price_currency: v.price_currency,
-      source_url: v.source_url || null,
-      image_url: imageUrl,
-      image_original_url: v.image_original_url || null,
-      // pgvector accepts the text format "[0.1,0.2,...]"; the generated column
-      // type is `string | null`, so serialize the embedding array.
-      embedding: embedding ? JSON.stringify(embedding) : null,
-      status: "draft",
-    })
-    .select("id")
-    .single();
-
-  if (insertErr || !inserted) {
-    return { error: `Insert failed: ${insertErr?.message}` };
-  }
-
-  // Also write KO translation
-  if (v.description) {
-    await supabase.from("product_translations").insert({
-      product_id: inserted.id,
-      locale: "ko",
-      name: v.name,
-      description: v.description,
-    });
-  }
-
-  redirect(`/admin/products/${inserted.id}`);
+  redirect(`/admin/products/${res.id}`);
 }
 
 export async function prefillFromUrl(url: string) {
