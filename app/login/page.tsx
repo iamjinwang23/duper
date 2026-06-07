@@ -1,6 +1,6 @@
 import { signIn } from "@/lib/auth";
 
-export default function AdminLoginPage(props: {
+export default function LoginPage(props: {
   searchParams: { callbackUrl?: string };
 }) {
   const callbackUrl = props.searchParams.callbackUrl ?? "/admin";

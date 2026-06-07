@@ -19,7 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   pages: {
-    signIn: "/admin/login",
+    signIn: "/login",
   },
   secret: env.NEXTAUTH_SECRET,
 });

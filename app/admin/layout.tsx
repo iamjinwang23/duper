@@ -6,7 +6,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const session = await auth();
   if (!session?.user?.email) {
     // middleware should have caught this, but defense in depth
-    redirect("/admin/login");
+    redirect("/login");
   }
   return (
     <div className="min-h-screen flex bg-neutral-950 text-neutral-100">
