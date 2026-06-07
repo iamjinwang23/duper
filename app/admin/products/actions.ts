@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { adminClient } from "@/lib/supabase/admin";
 import { scrapeProductUrl } from "@/lib/scraper";
 import { uploadImageFromUrl } from "@/lib/scraper/image";
-import { embedText } from "@/lib/openai";
+import { embedSafe } from "@/lib/embeddings";
 import { slugify } from "@/lib/slug";
 
 const Schema = z.object({
@@ -46,13 +46,13 @@ export async function registerProduct(
     }
   }
 
-  // Generate text embedding
+  // Generate text embedding (provider-agnostic, non-fatal). If embeddings are
+  // disabled ("none") or the provider is unavailable (e.g. no quota), the
+  // product is still saved with a null embedding to be backfilled later.
   const embedInput = [v.name, v.description ?? ""].filter(Boolean).join(" — ");
-  let embedding: number[] | null = null;
-  try {
-    embedding = await embedText(embedInput);
-  } catch (e) {
-    return { error: `Embedding failed: ${(e as Error).message}` };
+  const { vector: embedding, error: embedError } = await embedSafe(embedInput);
+  if (embedError) {
+    console.warn(`[registerProduct] embedding skipped: ${embedError}`);
   }
 
   // Generate slug; ensure uniqueness with a numeric suffix

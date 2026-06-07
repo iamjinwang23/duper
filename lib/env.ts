@@ -10,6 +10,11 @@ const EnvSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(10).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(10).optional(),
   ADMIN_EMAILS: z.string().default(""),
+  // Embeddings provider. "none" disables embedding generation entirely
+  // (products are saved without a vector, to be backfilled later).
+  EMBEDDING_PROVIDER: z.enum(["openai", "minimax", "none"]).default("openai"),
+  MINIMAX_API_KEY: z.string().optional(),
+  MINIMAX_GROUP_ID: z.string().optional(),
 });
 
 export const env = EnvSchema.parse({
@@ -22,6 +27,9 @@ export const env = EnvSchema.parse({
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   ADMIN_EMAILS: process.env.ADMIN_EMAILS ?? "",
+  EMBEDDING_PROVIDER: process.env.EMBEDDING_PROVIDER || undefined,
+  MINIMAX_API_KEY: process.env.MINIMAX_API_KEY,
+  MINIMAX_GROUP_ID: process.env.MINIMAX_GROUP_ID,
 });
 
 export const adminEmails = env.ADMIN_EMAILS.split(",").map((e) => e.trim()).filter(Boolean);
