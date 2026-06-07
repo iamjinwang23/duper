@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DUPE
 
-## Getting Started
+명품 × 가성비 듀프 매칭 서비스.
 
-First, run the development server:
+## Phase 1 status
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+This is the foundation + admin slice. You can:
+- Register luxury products by URL (scrapes OG meta).
+- Embed product text with OpenAI.
+- Mirror images to Supabase Storage.
+- Publish/archive products and see them on the public home in a masonry grid.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Not yet implemented:
+- AI matching pipeline (Phase 2)
+- Public detail page with dupes (Phase 2)
+- Affiliate redirect + tracking (Phase 2)
+- i18n, magazine, SEO polish (Phase 3)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. `npm install`
+2. Copy `.env.example` → `.env.local` and fill in:
+   - Supabase URL + anon + service role
+   - OpenAI API key
+   - Google OAuth client (redirect: `http://localhost:3000/api/auth/callback/google`)
+   - `ADMIN_EMAILS=your@email.com`
+3. Apply the schema: either `supabase link --project-ref <ref> && supabase db push`,
+   or apply `supabase/migrations/*.sql` to your project (the Phase 1 schema is already
+   live on the linked remote).
+4. `npm run dev`
 
-## Learn More
+## Layout
 
-To learn more about Next.js, take a look at the following resources:
+- `app/(public)/*` — public pages
+- `app/admin/*` — admin (Google OAuth, email whitelist)
+- `lib/supabase/*` — Postgres clients
+- `lib/scraper/*` — URL meta + image upload
+- `lib/openai.ts` — embeddings
+- `supabase/migrations/*` — schema
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run dev` — local dev
+- `npm test` — unit (vitest)
+- `npm run e2e` — Playwright (requires `E2E_AUTH_OK=1` for now)
+- `supabase db push` — apply migrations
