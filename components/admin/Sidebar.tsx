@@ -5,6 +5,7 @@ const NAV = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/products", label: "Products" },
   { href: "/admin/products/new", label: "+ New Product" },
+  { href: "/admin/match", label: "매칭" },
 ];
 
 export function Sidebar({ email }: { email: string }) {
