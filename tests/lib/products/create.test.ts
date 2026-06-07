@@ -14,8 +14,10 @@ vi.mock("@/lib/supabase/admin", () => ({ adminClient: () => ({ from }) }));
 
 const scrapeProductUrl = vi.fn();
 vi.mock("@/lib/scraper", () => ({ scrapeProductUrl: (...a: unknown[]) => scrapeProductUrl(...a) }));
-const uploadImageFromUrl = vi.fn();
-vi.mock("@/lib/scraper/image", () => ({ uploadImageFromUrl: (...a: unknown[]) => uploadImageFromUrl(...a) }));
+const uploadImageFromUrlSafe = vi.fn();
+vi.mock("@/lib/scraper/image", () => ({
+  uploadImageFromUrlSafe: (...a: unknown[]) => uploadImageFromUrlSafe(...a),
+}));
 const embedSafe = vi.fn();
 vi.mock("@/lib/embeddings", () => ({ embedSafe: (...a: unknown[]) => embedSafe(...a) }));
 
@@ -27,7 +29,7 @@ describe("createProductFromScrape", () => {
     trInsert.mockReset();
     maybeSingle.mockReset();
     scrapeProductUrl.mockReset();
-    uploadImageFromUrl.mockReset();
+    uploadImageFromUrlSafe.mockReset();
     embedSafe.mockReset();
     maybeSingle.mockResolvedValue({ data: null, error: null }); // slug is unique
     // registerProduct uses .insert(...).select("id").single()
@@ -43,7 +45,7 @@ describe("createProductFromScrape", () => {
       priceCurrency: "KRW",
       sourceUrl: "https://cos.com/bag",
     });
-    uploadImageFromUrl.mockResolvedValue("https://storage/cos.jpg");
+    uploadImageFromUrlSafe.mockResolvedValue({ url: "https://storage/cos.jpg", error: null });
     embedSafe.mockResolvedValue({ vector: new Array(1536).fill(0.1), error: null });
   });
 
@@ -55,7 +57,7 @@ describe("createProductFromScrape", () => {
       category: "bags",
     });
     expect(result.ok).toBe(true);
-    expect(uploadImageFromUrl).toHaveBeenCalledWith("https://src/cos.jpg");
+    expect(uploadImageFromUrlSafe).toHaveBeenCalledWith("https://src/cos.jpg");
     expect(embedSafe).toHaveBeenCalled();
     const inserted = insert.mock.calls[0][0];
     expect(inserted).toMatchObject({
@@ -100,11 +102,29 @@ describe("createProductFromScrape", () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(uploadImageFromUrl).not.toHaveBeenCalled();
+    expect(uploadImageFromUrlSafe).not.toHaveBeenCalled();
     const inserted = insert.mock.calls[0][0];
     expect(inserted.image_url).toBeNull();
     expect(inserted.image_original_url).toBeNull();
     expect(inserted.price_currency).toBe("KRW"); // defaulted
+  });
+
+  it("is non-fatal when image mirroring fails: saves product with null image_url but keeps original URL", async () => {
+    // e.g. COS KR image on image.thehyundai.com returns 404
+    uploadImageFromUrlSafe.mockResolvedValue({ url: null, error: "Image fetch failed: 404" });
+
+    const result = await createProductFromScrape({
+      url: "https://www.cos.com/ko-kr/bag",
+      brandId: "brand-cos",
+      tier: "spa",
+      category: "bags",
+    });
+
+    expect(result.ok).toBe(true); // product still saved
+    const inserted = insert.mock.calls[0][0];
+    expect(inserted.image_url).toBeNull(); // mirror skipped
+    expect(inserted.image_original_url).toBe("https://src/cos.jpg"); // provenance kept
+    expect(trInsert).toHaveBeenCalled();
   });
 
   it("returns an error result (does not throw) when the product insert fails", async () => {

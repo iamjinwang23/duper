@@ -1,6 +1,6 @@
 import { adminClient } from "@/lib/supabase/admin";
 import { scrapeProductUrl } from "@/lib/scraper";
-import { uploadImageFromUrl } from "@/lib/scraper/image";
+import { uploadImageFromUrlSafe } from "@/lib/scraper/image";
 import { embedSafe } from "@/lib/embeddings";
 import { slugify } from "@/lib/slug";
 
@@ -114,8 +114,14 @@ export async function createProductFromScrape(
     const name = meta.title?.trim();
     if (!name) return { ok: false, error: "상품명을 추출하지 못했습니다.", url: input.url };
 
-    // Mirror image to our Storage if the scrape found one.
-    const imageUrl = meta.imageUrl ? await uploadImageFromUrl(meta.imageUrl) : null;
+    // Mirror image to our Storage if the scrape found one. Non-fatal: a CDN 404
+    // (e.g. COS KR images on image.thehyundai.com) must not block registration.
+    let imageUrl: string | null = null;
+    if (meta.imageUrl) {
+      const { url, error } = await uploadImageFromUrlSafe(meta.imageUrl);
+      imageUrl = url;
+      if (error) console.warn(`[createProductFromScrape] image mirror skipped: ${error}`);
+    }
 
     const res = await insertProductRow({
       brandId: input.brandId,
